@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Tracking App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0a0a1a;
+            overflow-x: hidden;
+        }
+
+        .phone-app {
+            max-width: 450px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, #0f0f1a 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            padding: 40px 24px 20px;
+            background: linear-gradient(135deg, #1e2a5e, #0f172a);
+            border-radius: 0 0 30px 30px;
+        }
+
+        .greeting {
+            font-size: 0.85rem;
+            color: #a0aec0;
+            letter-spacing: 0.5px;
+        }
+
+        .app-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-title span {
+            background: #4ecdc4;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            color: #1a1a2e;
+        }
+
+        .menu-grid {
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .menu-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 28px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: block;
+        }
+
+        .menu-card:active {
+            transform: scale(0.97);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 6px;
+        }
+
+        .card-desc {
+            font-size: 0.75rem;
+            color: #a0aec0;
+        }
+
+        .admin-card {
+            background: linear-gradient(135deg, rgba(78,205,196,0.1), rgba(78,205,196,0.02));
+            border-left: 3px solid #4ecdc4;
+        }
+
+        .sender-card {
+            background: linear-gradient(135deg, rgba(255,107,107,0.1), rgba(255,107,107,0.02));
+            border-left: 3px solid #ff6b6b;
+        }
+
+        .info-card {
+            margin: 10px 20px 30px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .info-card p {
+            color: #888;
+            font-size: 0.7rem;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 450px;
+            margin: 0 auto;
+            background: rgba(15,15,26,0.95);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 20px 25px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-item {
+            text-align: center;
+            color: #666;
+            font-size: 0.7rem;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: #4ecdc4;
+        }
+
+        .nav-icon {
+            font-size: 1.3rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .menu-card, .info-card {
+            animation: fadeInUp 0.5s ease backwards;
+        }
+
+        .menu-card:nth-child(1) { animation-delay: 0.1s; }
+        .menu-card:nth-child(2) { animation-delay: 0.2s; }
+        .info-card { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="phone-app">
+        <div class="header">
+            <div class="greeting">Selamat datang,</div>
+            <div class="app-title">
+                Tracking App
+                <span>LIVE</span>
+            </div>
+        </div>
+
+        <div class="menu-grid">
+            <a href="admin_login.html" class="menu-card admin-card">
+                <div class="card-icon">👑</div>
+                <div class="card-title">Admin Panel</div>
+                <div class="card-desc">Lihat semua lokasi perangkat • Kontrol penuh</div>
+            </a>
+
+            <a href="sender.html" class="menu-card sender-card">
+                <div class="card-icon">📍</div>
+                <div class="card-title">Kirim Lokasi</div>
+                <div class="card-desc">Aktifkan tracking • Lokasi dikirim otomatis</div>
+            </a>
+        </div>
+
+        <div class="info-card">
+            <p>⚡ Hanya admin yang bisa menghentikan tracking</p>
+            <p>📍 Lokasi dikirim setiap 5 menit</p>
+            <p>🔒 Data aman dengan Firebase</p>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <span class="nav-icon">🏠</span>
+                <span>Beranda</span>
+            </div>
+            <div class="nav-item" id="navAdmin">
+                <span class="nav-icon">👑</span>
+                <span>Admin</span>
+            </div>
+            <div class="nav-item" id="navSender">
+                <span class="nav-icon">📍</span>
+                <span>Sender</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('navAdmin')?.addEventListener('click', function() {
+            window.location.href = 'admin_login.html';
+        });
+        document.getElementById('navSender')?.addEventListener('click', function() {
+            window.location.href = 'sender.html';
+        });
+    </script>
+</body>
+</html>

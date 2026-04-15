@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📍 Admin Panel - Live Tracking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .live-badge {
+            background: #4ecdc4;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            animation: pulse 1.5s infinite;
+            display: inline-block;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        table {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        th {
+            background: rgba(0,0,0,0.3);
+            color: #4ecdc4;
+        }
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        .map-link, .history-btn, .stop-btn, .start-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: inline-block;
+            margin: 2px;
+            border: none;
+        }
+        .map-link {
+            background: rgba(78,205,196,0.2);
+            color: #4ecdc4;
+        }
+        .map-link:hover {
+            background: #4ecdc4;
+            color: #1a1a2e;
+        }
+        .history-btn {
+            background: rgba(255,193,7,0.2);
+            color: #ffc107;
+        }
+        .history-btn:hover {
+            background: #ffc107;
+            color: #1a1a2e;
+        }
+        .stop-btn {
+            background: rgba(255,68,68,0.2);
+            color: #ff4444;
+        }
+        .stop-btn:hover {
+            background: #ff4444;
+            color: white;
+        }
+        .start-btn {
+            background: rgba(78,205,196,0.2);
+            color: #4ecdc4;
+        }
+        .start-btn:hover {
+            background: #4ecdc4;
+            color: #1a1a2e;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.8rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .close {
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+        .history-list {
+            list-style: none;
+        }
+        .history-list li {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.8rem;
+        }
+        .status-active {
+            color: #4ecdc4;
+        }
+        .status-inactive {
+            color: #ff4444;
+        }
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,68,68,0.8);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            z-index: 100;
+        }
+        .logout-btn:hover {
+            background: #ff4444;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+    
+    <div class="container">
+        <h1>📍 Admin Panel ● LIVE</h1>
+        <p class="subtitle">
+            <span class="live-badge">● ONLINE</span> Kontrol penuh semua perangkat
+        </p>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="deviceCount">0</div>
+                <div>Perangkat Terhubung</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalUpdates">0</div>
+                <div>Total Lokasi</div>
+            </div>
+        </div>
+        
+        <table id="trackingTable">
+            <thead>
+                <tr>
+                    <th>📱 Device</th>
+                    <th>🟢 Status</th>
+                    <th>⏰ Update Terakhir</th>
+                    <th>📍 Lokasi</th>
+                    <th>⚙️ Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="5">⏳ Memuat data...</td></tr>
+            </tbody>
+        </table>
+        <div class="footer">🔒 Hanya admin yang bisa menghentikan tracking device</div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Riwayat Lokasi</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        if (sessionStorage.getItem('adminLoggedIn') !== 'true') {
+            window.location.href = 'admin_login.html';
+        }
+
+        let currentDeviceForHistory = null;
+        
+        function logout() {
+            sessionStorage.removeItem('adminLoggedIn');
+            window.location.href = 'admin_login.html';
+        }
+        
+        function openGoogleMaps(lat, lng) {
+            window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+        }
+        
+        async function stopTracking(deviceId, deviceName) {
+            if (confirm(`Hentikan tracking untuk "${deviceName}"? Device tidak akan bisa mengirim lokasi lagi sampai admin mengaktifkan ulang.`)) {
+                await db.collection('devices').doc(deviceId).set({
+                    trackingActive: false,
+                    stoppedBy: 'admin',
+                    stoppedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                alert(`✅ Tracking untuk ${deviceName} telah dihentikan`);
+            }
+        }
+        
+        async function startTracking(deviceId, deviceName) {
+            if (confirm(`Aktifkan kembali tracking untuk "${deviceName}"? Device akan mulai mengirim lokasi lagi.`)) {
+                await db.collection('devices').doc(deviceId).set({
+                    trackingActive: true,
+                    startedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                alert(`✅ Tracking untuk ${deviceName} telah diaktifkan kembali`);
+            }
+        }
+        
+        async function showHistory(deviceId, deviceName) {
+            currentDeviceForHistory = deviceId;
+            document.getElementById('modalTitle').innerHTML = `📜 Riwayat - ${deviceName}`;
+            document.getElementById('modalBody').innerHTML = '<p>⏳ Memuat riwayat...</p>';
+            document.getElementById('historyModal').style.display = 'flex';
+            
+            const snapshot = await db.collection('locations')
+                .where('deviceId', '==', deviceId)
+                .orderBy('timestamp', 'desc')
+                .limit(50)
+                .get();
+            
+            if (snapshot.empty) {
+                document.getElementById('modalBody').innerHTML = '<p>📭 Belum ada riwayat lokasi</p>';
+                return;
+            }
+            
+            let html = '<ul class="history-list">';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = data.timestamp?.toDate();
+                const timeStr = date ? date.toLocaleString('id-ID') : 'Tidak diketahui';
+                html += `
+                    <li>
+                        <strong>📍 ${data.latitude}, ${data.longitude}</strong><br>
+                        🕐 ${timeStr}<br>
+                        <button class="map-link" onclick="openGoogleMaps(${data.latitude}, ${data.longitude})">🗺️ Lihat Peta</button>
+                    </li>
+                `;
+            });
+            html += '</ul>';
+            document.getElementById('modalBody').innerHTML = html;
+        }
+        
+        function closeModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+        
+        function formatTime(timestamp) {
+            if (!timestamp) return 'Tidak pernah';
+            const date = timestamp.toDate();
+            return date.toLocaleString('id-ID');
+        }
+        
+        function renderDevices(devicesMap, latestLocations) {
+            const tbody = document.getElementById('tableBody');
+            const devices = Array.from(devicesMap.values());
+            
+            if (devices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">📭 Belum ada device yang terhubung</td></tr>';
+                document.getElementById('deviceCount').innerText = '0';
+                return;
+            }
+            
+            document.getElementById('deviceCount').innerText = devices.length;
+            document.getElementById('totalUpdates').innerText = latestLocations.size;
+            
+            tbody.innerHTML = devices.map(device => {
+                const latest = latestLocations.get(device.deviceId);
+                const isActive = device.trackingActive !== false;
+                const lastTime = latest?.timestamp ? formatTime(latest.timestamp) : 'Belum ada lokasi';
+                
+                return `
+                    <tr>
+                        <td><strong>${escapeHtml(device.deviceName)}</strong></td>
+                        <td class="${isActive ? 'status-active' : 'status-inactive'}">
+                            ${isActive ? '🟢 Aktif' : '🔴 Dihentikan Admin'}
+                        </td>
+                        <td>${lastTime}</td>
+                        <td>${latest ? `${latest.latitude}, ${latest.longitude}` : '-'}</td>
+                        <td>
+                            ${latest ? `<button class="map-link" onclick="openGoogleMaps(${latest.latitude}, ${latest.longitude})">🗺️ Peta</button>` : ''}
+                            <button class="history-btn" onclick="showHistory('${device.deviceId}', '${escapeHtml(device.deviceName)}')">📜 History</button>
+                            ${isActive ? 
+                                `<button class="stop-btn" onclick="stopTracking('${device.deviceId}', '${escapeHtml(device.deviceName)}')">⏹️ Stop</button>` : 
+                                `<button class="start-btn" onclick="startTracking('${device.deviceId}', '${escapeHtml(device.deviceName)}')">▶️ Start</button>`
+                            }
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        const devicesMap = new Map();
+        const latestLocations = new Map();
+        
+        db.collection('devices').onSnapshot((snapshot) => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'removed') {
+                    devicesMap.delete(change.doc.id);
+                } else {
+                    const data = change.doc.data();
+                    devicesMap.set(change.doc.id, {
+                        deviceId: change.doc.id,
+                        deviceName: data.deviceName,
+                        trackingActive: data.trackingActive !== false
+                    });
+                }
+            });
+            renderDevices(devicesMap, latestLocations);
+        });
+        
+        db.collection('locations').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
+            snapshot.docChanges().forEach(change => {
+                const data = change.doc.data();
+                if (data.deviceId) {
+                    latestLocations.set(data.deviceId, {
+                        latitude: data.latitude,
+                        longitude: data.longitude,
+                        timestamp: data.timestamp
+                    });
+                }
+            });
+            renderDevices(devicesMap, latestLocations);
+        });
+        
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('historyModal')) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+</html>

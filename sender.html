@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📍 Live Sender - Tracking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #0f0f23 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 30px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 10px;
+        }
+        .status {
+            font-size: 1.2rem;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.3);
+        }
+        .status-active {
+            color: #4ecdc4;
+            border-left: 4px solid #4ecdc4;
+        }
+        .status-inactive {
+            color: #ff4444;
+            border-left: 4px solid #ff4444;
+        }
+        .btn-start {
+            background: #4ecdc4;
+            color: #1a1a2e;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        .btn-start:hover {
+            background: #3bb3aa;
+            transform: scale(1.02);
+        }
+        .info {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-top: 20px;
+        }
+        .device-input {
+            margin: 20px 0;
+        }
+        .device-input input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .last-send {
+            font-size: 0.7rem;
+            color: #4ecdc4;
+            margin-top: 10px;
+        }
+        .warning {
+            background: rgba(255,68,68,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-top: 15px;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📍 Live Tracking</h1>
+            <p>Perangkat akan mengirim lokasi setiap 5 menit</p>
+            
+            <div class="device-input">
+                <input type="text" id="deviceName" placeholder="Nama Perangkat (contoh: HP Rey)" value="Device Saya">
+            </div>
+            
+            <button class="btn-start" id="actionBtn" onclick="requestLocation()">
+                📍 Berikan Izin Lokasi
+            </button>
+            
+            <div class="status" id="statusBox">
+                ⚠️ Belum aktif
+            </div>
+            
+            <div class="last-send" id="lastSend">-</div>
+            
+            <div class="warning">
+                ⚠️ Hanya admin yang bisa menghentikan tracking Anda
+            </div>
+            <div class="info">
+                📍 Lokasi akan dikirim otomatis setiap 5 menit<br>
+                🔒 Anda tidak bisa memberhentikan sendiri
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        let watchId = null;
+        let intervalId = null;
+        let deviceId = null;
+        let currentPosition = null;
+        
+        const deviceNameInput = document.getElementById('deviceName');
+        const actionBtn = document.getElementById('actionBtn');
+        const statusBox = document.getElementById('statusBox');
+        const lastSendSpan = document.getElementById('lastSend');
+        
+        function getDeviceId() {
+            let id = localStorage.getItem('tracking_device_id');
+            if (!id) {
+                id = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('tracking_device_id', id);
+            }
+            return id;
+        }
+        
+        async function checkTrackingStatus() {
+            if (!deviceId) return true;
+            
+            try {
+                const doc = await db.collection('devices').doc(deviceId).get();
+                if (doc.exists && doc.data().trackingActive === false) {
+                    stopTrackingByAdmin();
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error("Gagal cek status:", error);
+                return true;
+            }
+        }
+        
+        function stopTrackingByAdmin() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            
+            statusBox.innerHTML = '⛔ Tracking telah dihentikan oleh admin';
+            statusBox.className = 'status status-inactive';
+            actionBtn.innerHTML = '🔒 Dihentikan Admin';
+            actionBtn.disabled = true;
+            actionBtn.style.opacity = '0.5';
+        }
+        
+        async function sendToFirebase(lat, lng) {
+            const isActive = await checkTrackingStatus();
+            if (!isActive) return false;
+            
+            const deviceName = deviceNameInput.value.trim() || "Unknown Device";
+            
+            try {
+                await db.collection('locations').add({
+                    deviceId: deviceId,
+                    deviceName: deviceName,
+                    latitude: lat,
+                    longitude: lng,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                await db.collection('devices').doc(deviceId).set({
+                    deviceName: deviceName,
+                    lastLocation: { lat, lng },
+                    lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
+                    trackingActive: true
+                }, { merge: true });
+                
+                lastSendSpan.innerHTML = `✅ Terkirim: ${new Date().toLocaleTimeString()}`;
+                return true;
+            } catch (error) {
+                console.error("Gagal kirim:", error);
+                lastSendSpan.innerHTML = `❌ Gagal: ${new Date().toLocaleTimeString()}`;
+                return false;
+            }
+        }
+        
+        async function sendCurrentLocation() {
+            if (!currentPosition) return;
+            
+            const isActive = await checkTrackingStatus();
+            if (!isActive) return;
+            
+            await sendToFirebase(currentPosition.lat, currentPosition.lng);
+        }
+        
+        function updatePosition(position) {
+            currentPosition = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            statusBox.innerHTML = `📍 Tracking aktif\n${currentPosition.lat}, ${currentPosition.lng}`;
+            statusBox.className = 'status status-active';
+        }
+        
+        async function startTracking() {
+            deviceId = getDeviceId();
+            
+            const isActive = await checkTrackingStatus();
+            if (!isActive) return;
+            
+            if (!navigator.geolocation) {
+                alert("Browser tidak mendukung GPS");
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    updatePosition(position);
+                    
+                    watchId = navigator.geolocation.watchPosition(
+                        updatePosition,
+                        (error) => {
+                            console.error("Error watch:", error);
+                            statusBox.innerHTML = '⚠️ Gagal update posisi';
+                        },
+                        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+                    );
+                    
+                    intervalId = setInterval(sendCurrentLocation, 300000);
+                    sendCurrentLocation();
+                    
+                    actionBtn.innerHTML = '✅ Tracking Aktif';
+                    actionBtn.disabled = true;
+                    actionBtn.style.opacity = '0.5';
+                    statusBox.innerHTML = '📍 Tracking aktif - mengirim setiap 5 menit';
+                },
+                (error) => {
+                    let msg = "";
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            msg = "Izin lokasi ditolak. Buka pengaturan browser dan izinkan.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            msg = "Lokasi tidak tersedia. Pastikan GPS aktif.";
+                            break;
+                        case error.TIMEOUT:
+                            msg = "Waktu habis. Coba lagi.";
+                            break;
+                        default:
+                            msg = error.message;
+                    }
+                    alert("❌ " + msg);
+                    statusBox.innerHTML = '❌ ' + msg;
+                    statusBox.className = 'status status-inactive';
+                },
+                { enableHighAccuracy: true, timeout: 15000 }
+            );
+        }
+        
+        async function requestLocation() {
+            const deviceName = deviceNameInput.value.trim();
+            if (!deviceName) {
+                alert("Isi nama perangkat terlebih dahulu");
+                deviceNameInput.focus();
+                return;
+            }
+            
+            deviceId = getDeviceId();
+            
+            const doc = await db.collection('devices').doc(deviceId).get();
+            if (doc.exists && doc.data().trackingActive === false) {
+                alert("❌ Device ini telah dihentikan oleh admin. Tidak bisa memulai tracking.");
+                return;
+            }
+            
+            startTracking();
+        }
+        
+        window.onload = async () => {
+            deviceId = getDeviceId();
+            const doc = await db.collection('devices').doc(deviceId).get();
+            if (doc.exists && doc.data().trackingActive === false) {
+                stopTrackingByAdmin();
+            }
+        };
+    </script>
+</body>
+</html>
